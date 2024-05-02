@@ -32,16 +32,16 @@ function Home() {
   return (
     <Box sx={{ width: "100%" }}>
       <Tabs value={tabValue} onChange={handleChange} centered>
-        <Tab label="Search Jobs" />
         <Tab label="Applied Jobs" />
+        <Tab label="Search Jobs" />
       </Tabs>
       <TabPanel value={tabValue} index={0}>
-        <SearchJobs/>
-      </TabPanel>
-      <TabPanel value={tabValue} index={1}>
         {/* Content for Applied Jobs tab */}
         <h2>Applied Jobs</h2>
         {/* Add your applied job content here */}
+      </TabPanel>
+      <TabPanel value={tabValue} index={1}>
+        <SearchJobs/>
       </TabPanel>
     </Box>
   );
