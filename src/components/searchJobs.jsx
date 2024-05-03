@@ -3,30 +3,24 @@ import "../assests/css/searchJobs.css";
 import { useDispatch, useSelector } from "react-redux";
 import { jobListRequest } from "../stores/jobs/jobActions";
 import SearchJobFilters from "./searchJobFilters";
-import {
-  Card,
-  CardContent,
-  Typography,
-  Button,
-  AvatarGroup,
-  Avatar,
-} from "@mui/material";
 import "../assests/css/jobCard.css";
-import avatar1 from "../assests/images/avatar/dummyAvatar_1.jpg";
-import avatar2 from "../assests/images/avatar/dummyAvatar_2.jpg";
+import { ThreeDots } from "react-loader-spinner";
+import Jobcard from "./jobcard";
 
 const initialFormData = {
   role: [],
-  numberOfEmployees: [],
+  location: [],
   experience: null,
   remote: [],
   techStack: [],
   minimumBasePaySalary: null,
   isReferralAvailable: false,
+  companyName: "",
 };
 function SearchJobs() {
   const [formData, setFormData] = useState(initialFormData);
   const [jobList, setJobList] = useState([]);
+  const [totalJobList, setTotalJobList] = useState([]);
   const dispatch = useDispatch();
 
   const handleInputChange = (fieldName, value) => {
@@ -34,27 +28,116 @@ function SearchJobs() {
       ...formData,
       [fieldName]: value,
     });
+    const filteredJobs = totalJobList.filter((job) =>
+      filterJobs(job, formData)
+    );
+    setJobList(() => [filteredJobs]);
+  };
+  const filterJobs = (job, filters) => {
+    // Filter by role
+    if (filters.role.length > 0 && !filters.role.includes(job.jobRole)) {
+      return false;
+    }
+
+    // Filter by number of employees
+    console.log(JSON.stringify(filters.location), job.location);
+    if (
+      filters.location.length > 0 &&
+      !filters.location.some((option) => option.value === job.location)
+    ) {
+      return false;
+    }
+
+    // Filter by experience
+    if (
+      filters.experience !== null &&
+      (job.minExp > filters.experience || job.maxExp < filters.experience)
+    ) {
+      return false;
+    }
+
+    // Filter by remote
+    if (filters.remote.length > 0 && !filters.remote.includes(job.remote)) {
+      return false;
+    }
+
+    // Filter by tech stack
+    if (
+      filters.techStack.length > 0 &&
+      !job.techStack.some((stack) => filters.techStack.includes(stack))
+    ) {
+      return false;
+    }
+
+    // Filter by minimum base pay salary
+    if (
+      filters.minimumBasePaySalary !== null &&
+      (job.minJdSalary === null ||
+        job.minJdSalary < filters.minimumBasePaySalary)
+    ) {
+      return false;
+    }
+
+    // Filter by referral availability
+    if (filters.isReferralAvailable && !job.isReferralAvailable) {
+      return false;
+    }
+
+    // If all filters pass, include the job in the filtered list
+    return true;
   };
 
   const nextProps = useSelector((state) => ({
     jobDataList: state.Jobs.jobList,
+    loading: state.Jobs.loading,
+    offset: state.Jobs.offset,
   }));
 
   useEffect(() => {
-    const payload = JSON.stringify({
-      limit: 10,
-      offset: 0,
-    });
-    dispatch(jobListRequest(payload));
-  }, [formData]);
+    if (jobList.length <= 0) {
+      const payload = {
+        limit: 10,
+        offset: 0,
+      };
+      dispatch(jobListRequest(payload));
+    }
+  }, []);
 
   useEffect(() => {
     console.log(nextProps.jobDataList);
     if (nextProps.jobDataList && nextProps.jobDataList.jdList) {
-      setJobList(nextProps.jobDataList.jdList);
+      const filteredJobs = nextProps.jobDataList.jdList.filter((job) =>
+        filterJobs(job, formData)
+      );
+      setJobList((prevJobs) => [...prevJobs, ...filteredJobs]);
+      setTotalJobList((prevJobs) => [
+        ...prevJobs,
+        ...nextProps.jobDataList.jdList,
+      ]);
     }
   }, [nextProps.jobDataList]);
 
+  useEffect(() => {
+    const handleScroll = () => {
+      if (
+        (nextProps.jobDataList &&
+          jobList.length >= nextProps.jobDataList.totalCount) ||
+        nextProps.loading ||
+        document.documentElement.offsetHeight - window.innerHeight >
+          document.documentElement.scrollTop + 1
+      ) {
+        return;
+      }
+      const payload = {
+        limit: 10,
+        offset: nextProps.offset,
+      };
+      dispatch(jobListRequest(payload)); // Dispatch action to fetch more jobs when user scrolls to bottom
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [nextProps.loading, dispatch, nextProps.offset]);
   return (
     <div>
       <SearchJobFilters
@@ -62,93 +145,22 @@ function SearchJobs() {
         handleInputChange={handleInputChange}
       />
       <div className="cards-container">
-        {jobList.map((job) => (
-          <Card className="job-card" key={job.jdUid}>
-            <CardContent>
-              <div className="card-top">
-                <div className="posted-time"><p>{`⏳ Posted 19 hours ago`}</p></div>
-              </div>
-              <div className="company-section">
-                <img
-                  src="company-logo.png"
-                  alt="Company Logo"
-                  className="company-logo"
-                />
-                <div className="company-details">
-                  <Typography variant="h6" sx={{fontSize: "13px", color:"#8b8b8"}}>{job.companyName}</Typography>
-                  <Typography variant="subtitle1" sx={{fontSize: "14px"}}>{job.jobRole}</Typography>
-                  <Typography variant="subtitle2" sx={{fontSize: "11px"}}>{job.location}</Typography>
-                </div>
-              </div>
-              <div className="salary-section">
-                <Typography variant="body1">
-                  {job.minJdSalary !== null && job.maxJdSalary !== null
-                    ? `Estimated Salary: ₹${job.minJdSalary} - ${job.maxJdSalary} LPA`
-                    : job.minJdSalary !== null
-                    ? `Estimated Salary: ₹${job.minJdSalary} LPA`
-                    : job.maxJdSalary !== null
-                    ? `Estimated Salary: ₹${job.maxJdSalary} LPA`
-                    : ""}
-                </Typography>
-              </div>
-              <div className="about-company">
-                <Typography variant="body1">
-                  {job.jobDetailsFromCompany}
-                </Typography>
-              </div>
-              <div className="about-view-job">
-                <a href={job.jdLink}>View job</a>
-              </div>
-              <div className="experience">
-                <Typography variant="body2">Minimum Experience <p>{job.minExp ? `${job.minExp} years`: ""}</p></Typography>
-              </div>
-              <div className="easy-apply">
-                <Button
-                  variant="contained"
-                  fullWidth
-                  href={job.jdLink}
-                  sx={{
-                    bgcolor: "#55EFC4",
-                    color: "#000",
-                    fontWeight: "500",
-                    ":hover": {
-                      bgcolor: "#55EFC4",
-                    },
-                  }}
-                >
-                  ⚡ Easy Apply
-                </Button>
-              </div>
-              <div className="easy-apply">
-                <Button
-                  variant="contained"
-                  fullWidth
-                  color="primary"
-                  sx={{
-                    color: "#FFFF",
-                    fontWeight: "500",
-                    fontSize: "12px",
-                  }}
-                >
-                  <AvatarGroup total={2} sx={{ marginInline: "10px" }}>
-                    <Avatar
-                      alt="Remy Sharp"
-                      src={avatar1}
-                      sx={{ width: 24, height: 24 }}
-                    />
-                    <Avatar
-                      alt="Travis Howard"
-                      src={avatar2}
-                      sx={{ width: 24, height: 24 }}
-                    />
-                  </AvatarGroup>
-                  Unlock referral asks
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+        {jobList.map((job, index) => (
+          <Jobcard job={job} key={index} />
         ))}
       </div>
+      {nextProps.loading && (
+        <div className="loader-container">
+          <ThreeDots
+            visible={true}
+            height="80"
+            width="80"
+            color="#55EFC4"
+            radius="9"
+            ariaLabel="three-dots-loading"
+          />
+        </div>
+      )}
     </div>
   );
 }

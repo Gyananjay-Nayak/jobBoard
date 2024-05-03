@@ -3,6 +3,7 @@ import JOB_CONST from "./jobConst";
 const initialState = {
   error: "",
   loading: false,
+  offset: 0,
 };
 
 const Jobs = (state, action) => {
@@ -20,11 +21,13 @@ const Jobs = (state, action) => {
       };
       break;
     case JOB_CONST.JOB_LIST_SUCCESS:
+        console.log(state)
       state = {
         ...state,
         loading: false,
         jobList:
           action.payload.statusCode === 200 ? action.payload.data : false,
+        offset: state.offset + 10, // update offset
         error: "",
       };
       break;

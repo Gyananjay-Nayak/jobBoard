@@ -21,7 +21,23 @@
 }
 .select::placeholder {
     color: #999; 
-  }
+}
+.input-field{
+    width: 100%;
+    min-height: 38px;
+    padding: 8px;
+    border: 1px solid #cccccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.input-field::placeholder{
+    color: #999;
+    font-weight: 600;
+    font-size: 13px;
+}
 
 .select__multi-value {
     display: inline-flex;
@@ -40,4 +56,9 @@
     display: flex;
     flex-wrap: wrap;
     margin-left: 5px !important;
+}
+.loader-container{
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
